@@ -1,20 +1,43 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 
 export default function VoiceNote() {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
 
-  const toggleAudio = () => {
-    if (!audioRef.current) return;
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    if (audioRef.current.paused) {
-      audioRef.current.play();
-      setPlaying(true);
+    // Sync UI when audio ends naturally
+    const onEnded = () => setPlaying(false);
+    const onPause = () => setPlaying(false);
+    const onPlay = () => setPlaying(true);
+
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+
+    return () => {
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+    };
+  }, []);
+
+  const toggleAudio = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (audio.paused) {
+      try {
+        await audio.play();
+      } catch (err) {
+        console.log("Audio play failed:", err);
+      }
     } else {
-      audioRef.current.pause();
-      setPlaying(false);
+      audio.pause();
     }
   };
 
@@ -22,15 +45,14 @@ export default function VoiceNote() {
     <div className="voice-card">
       <div className="voice-label">VOICE NOTE</div>
 
-      <audio ref={audioRef} src="/music/voice-note.mp3" preload="auto" />
+      {/* Correct file path */}
+      <audio ref={audioRef} src="/voice/message.mp3" preload="auto" />
 
       <button className="voice-button" onClick={toggleAudio}>
         {playing ? "⏸ Pause" : "▶ Play"}
       </button>
 
-      <div className="voice-hint">
-        Because some words sound better spoken.
-      </div>
+      <div className="voice-hint">Because some words sound better spoken.</div>
     </div>
   );
 }
